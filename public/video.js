@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getDatabase, ref, set, push, onValue, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
-// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBTonYWFHgcxcVi1BBVeZkx823CfuT7CgM",
     authDomain: "findaguest-3024b.firebaseapp.com",
@@ -14,7 +13,7 @@ const firebaseConfig = {
     measurementId: "G-WPJK68Y0XZ"
 };
 
-// Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
@@ -44,7 +43,8 @@ signInAnonymously(auth).catch((error) => {
     console.error("Error signing in anonymously:", error);
 });
 
-// Handle authentication state
+
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
@@ -55,7 +55,8 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Set active user and watch for available partners
+
+// active user setuping option
 function setActiveUser() {
     const activeUsersRef = ref(db, `videoActiveUsers/${currentUser.uid}`);
     set(activeUsersRef, {
@@ -137,7 +138,7 @@ async function findNewGuest() {
             document.getElementById('find-new-user-btn').disabled = true;
         } else {
             alert("No other active users found. Please try again later.");
-            showLoading(false);  // Hide loading if no users are found
+            showLoading(false); 
         }
     } catch (error) {
         console.error("Error finding a new guest:", error);
