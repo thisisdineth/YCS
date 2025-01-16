@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+    <link rel="manifest" href="favicon/site.webmanifest">
+    <title>Wall- Signup / Sign In</title>
+    <link rel="stylesheet" href="signpage.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="img/logo.png" alt="App Logo" class="logo">
+            <h1 class="app-name">findaguest Wall</h1>
+        </div>
+        <button id="switch-btn">Already Have an Account?</button>
+    </header>
+    <div class="container">
+        <div id="auth-section">
+            <div class="form-container" id="signup-container">
+                <h2>Sign Up</h2>
+                <form id="signup-form">
+                    <input type="file" id="signup-photo" accept="image/*">
+                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                    <input type="text" id="signup-username" placeholder="Username" required>
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                    <input type="password" id="signup-password" placeholder="Password" required>
+                    
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="role" value="student" required> Student
+                        </label>
+                        <label>
+                            <input type="radio" name="role" value="teacher" required> Teacher
+                        </label>
+                    </div>
+
+                    <textarea id="signup-bio" placeholder="Tagline (eg:Web Designer / Photographer / A/Ls student)" minlength="2" maxlength="20" required></textarea>
+                    
+                    <button type="submit">Sign Up</button>
+                </form>
+            </div>
+            <div class="form-container" id="signin-container">
+                <h2>Sign In</h2>
+                <form id="signin-form">
+                    <input type="text" id="signin-username" placeholder="Email" required>
+                    <input type="password" id="signin-password" placeholder="Password" required>
+                    <button type="submit">Sign In</button>
+                </form>
+            </div>
+            <div class="image-container">
+                <img src="img/logo.png" alt="Sign Up / Sign In" class="auth-image">
+            </div>
+        </div>
+        <div id="loader" class="loader-container" style="display:none;">
+            <img src="img/loader.gif" alt="Loading...">
+        </div>
+        <div id="message" class="message-container"></div>
+    </div>
+
+    <!-- MacBook Dock Menu -->
+<div class="dock">
+    <a href="https://www.findaguest.online/" class="dock-icon">
+        <i class="fas fa-home"></i>
+    </a>
+    <a href="https://www.findaguest.online/chats.html" class="dock-icon">
+        <i class="fa fa-comments" aria-hidden="true"></i>
+    </a>
+    <a href="https://findaguest.online/voice.html" class="dock-icon">
+        <i class="fa fa-microphone" aria-hidden="true"></i>
+    </a>
+    <a href="https://findaguest.online/video.html" class="dock-icon">
+        <i class="fa fa-video-camera" aria-hidden="true"></i>
+    </a>
+    <a href="https://findaguest.online/edu/index.html" class="dock-icon">
+        <i class="fa fa-book" aria-hidden="true"></i>
+    </a>
+    <a href="https://findaguest.online/edu/exp.html" class="dock-icon">
+        <i class="fa fa-envelope" aria-hidden="true"></i>
+    </a>
+    <a href="https://findaguest.online/edu/profile.html" class="dock-icon">
+        <i class="fa fa-user" aria-hidden="true"></i>
+    </a>
+</div>
+    <footer>
+        <p>&copy; 2024 IFF3. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="auth.js"></script>
+</body>
+</html>

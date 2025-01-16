@@ -1,6 +1,6 @@
 // Import Firebase modules
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { getDatabase, ref, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
 
 // Firebase Configuration
@@ -18,6 +18,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+
+// Admin credentials
+const adminEmail = "admin@findaguest.online";
+const adminPassword = "adminPassword123"; // Make sure to set this in the Firebase Console too!
 
 // Function to load users
 function loadUsers() {
@@ -84,12 +88,29 @@ function blockUser(userId) {
     }
 }
 
+// Admin login logic
+function adminLogin() {
+    signInWithEmailAndPassword(auth, adminEmail, adminPassword)
+        .then(() => {
+            console.log("Admin logged in successfully");
+            loadUsers(); // Proceed to load users after login
+        })
+        .catch((error) => {
+            alert('Admin login failed: ' + error.message);
+            window.location.href = "signpage.html"; // Redirect to login page if login fails
+        });
+}
+
 // Check admin authentication
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        loadUsers();
+        if (user.email === adminEmail) {
+            loadUsers(); // Only proceed if it's the admin
+        } else {
+            alert('Unauthorized access. Redirecting to login...');
+            window.location.href = "signpage.html"; // Redirect to login page if unauthorized
+        }
     } else {
-        alert('Unauthorized access. Redirecting to login...');
-        window.location.href = "login.html";
+        adminLogin(); 
     }
 });
