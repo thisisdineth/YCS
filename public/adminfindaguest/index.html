@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="chat.css">
     <!-- Firebase SDKs as Modules -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"></script>
@@ -31,8 +32,30 @@
                     <!-- Dynamic rows will be inserted here -->
                 </tbody>
             </table>
+
         </main>
     </div>
+    <div class="container">
+        <header>
+            <h1>Connection Server</h1>
+        </header>
+        <section class="dashboard">
+            <div class="active-users">
+                <h2>Active Users</h2>
+                <p id="active-users-count">Loading...</p>
+            </div>
+            <div class="active-chat-rooms">
+                <h2>Active Chat Rooms</h2>
+                <p id="active-chat-rooms-count">Loading...</p>
+                <button id="close-chat-room-btn">Close Chat Room</button>
+                <select id="chat-rooms-list">
+                    <option value="">Select a Chat Room</option>
+                </select>
+            </div>
+        </section>
+    </div>
+
     <script type="module" src="script.js"></script>
+    <script type="module" src="chatadmin.js"></script>
 </body>
 </html>

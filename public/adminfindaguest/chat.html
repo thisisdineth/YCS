@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Admin Dashboard</h1>
+        </header>
+        <section class="dashboard">
+            <div class="active-users">
+                <h2>Active Users</h2>
+                <p id="active-users-count">Loading...</p>
+            </div>
+            <div class="active-chat-rooms">
+                <h2>Active Chat Rooms</h2>
+                <p id="active-chat-rooms-count">Loading...</p>
+                <button id="close-chat-room-btn">Close Chat Room</button>
+                <select id="chat-rooms-list">
+                    <option value="">Select a Chat Room</option>
+                </select>
+            </div>
+        </section>
+    </div>
+
+    <script type="module" src="chatadmin.js"></script>
+
+</body>
+</html>
