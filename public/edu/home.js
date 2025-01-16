@@ -66,7 +66,19 @@ const truncate = (str, maxLength) => {
 
 // Event Listeners
 
-// Post a new tweet
+// Custom sensitive keywords for additional filtering
+const customSensitiveWords = [
+    "war", "politics", "sex", "harassment", "suicide", "rape", "abuse", "terror", "kill",
+    "attack", "mental harm", "explicit", "bomb", "violence", "discrimination" , "bad words" , "nudity" ,"crimes" 
+];
+
+// Function to check for custom sensitive words
+function containsSensitiveWords(input) {
+    const lowercaseInput = input.toLowerCase();
+    return customSensitiveWords.some(word => lowercaseInput.includes(word));
+}
+
+// Event Listener: Post a new tweet with moderation checks
 postTweetBtn.addEventListener('click', async () => {
     const tweetContent = tweetForm.value.trim();
 
@@ -80,49 +92,88 @@ postTweetBtn.addEventListener('click', async () => {
         return;
     }
 
-    const user = auth.currentUser;
+    // Check for custom sensitive words
+    if (containsSensitiveWords(tweetContent)) {
+        showError("Your tweet contains inappropriate content and cannot be posted.");
+        return;
+    }
 
-    if (user) {
-        try {
-            // Show loading spinner
-            postTweetBtn.disabled = true;
-            postTweetBtn.innerText = 'Posting...';
+    // Call OpenAI Moderation API for additional filtering
+    try {
+        const response = await fetch('https://api.openai.com/v1/moderations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer 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` 
+            },
+            body: JSON.stringify({
+                input: tweetContent
+            })
+        });
 
-            const userRef = ref(db, `users/${user.uid}`);
-            const userSnapshot = await get(userRef);
-            const userData = userSnapshot.val();
-
-            if (!userData) {
-                throw new Error("User data not found.");
-            }
-
-            const tweetRef = ref(db, 'tweets/');
-            const newTweet = {
-                content: tweetContent,
-                author: `${userData.name} (${userData.role})`,
-                username: userData.username,
-                photoURL: userData.photoURL || "default-profile.png", // Provide a default image if none
-                bio: userData.bio || "",
-                userId: user.uid,
-                timestamp: new Date().toISOString(),
-                likes: 0,
-                likedBy: []  // Array to store user IDs who liked the tweet
-            };
-
-            await push(tweetRef, newTweet);
-            tweetForm.value = ""; // Clear the input field after posting
-        } catch (error) {
-            console.error("Error posting tweet:", error);
-            showError("Failed to post tweet. Please try again.");
-        } finally {
-            // Hide loading spinner
-            postTweetBtn.disabled = false;
-            postTweetBtn.innerText = 'Post';
+        if (!response.ok) {
+            throw new Error(`OpenAI API returned an error: ${response.statusText}`);
         }
-    } else {
-        showError("You must be logged in to post a tweet!");
+
+        const moderationResponse = await response.json();
+
+        // Check if the tweet is flagged by OpenAI
+        const flagged = moderationResponse.results.some(result => result.flagged);
+
+        if (flagged) {
+            showError("Your tweet contains harmful or inappropriate content and cannot be posted.");
+            return;
+        }
+
+        // Proceed to post the tweet if it passes all checks
+        const user = auth.currentUser;
+
+        if (user) {
+            try {
+                // Show loading spinner
+                postTweetBtn.disabled = true;
+                postTweetBtn.innerText = 'Posting...';
+
+                const userRef = ref(db, `users/${user.uid}`);
+                const userSnapshot = await get(userRef);
+                const userData = userSnapshot.val();
+
+                if (!userData) {
+                    throw new Error("User data not found.");
+                }
+
+                const tweetRef = ref(db, 'tweets/');
+                const newTweet = {
+                    content: tweetContent,
+                    author: `${userData.name} (${userData.role})`,
+                    username: userData.username,
+                    photoURL: userData.photoURL || "default-profile.png",
+                    bio: userData.bio || "",
+                    userId: user.uid,
+                    timestamp: new Date().toISOString(),
+                    likes: 0,
+                    likedBy: [] // Array to store user IDs who liked the tweet
+                };
+
+                await push(tweetRef, newTweet);
+                tweetForm.value = ""; // Clear the input field after posting
+            } catch (error) {
+                console.error("Error posting tweet:", error);
+                showError("Failed to post tweet. Please try again.");
+            } finally {
+                // Hide loading spinner
+                postTweetBtn.disabled = false;
+                postTweetBtn.innerText = 'Post';
+            }
+        } else {
+            showError("You must be logged in to post a tweet!");
+        }
+    } catch (error) {
+        console.error("Error moderating content:", error);
+        showError("Failed to analyze tweet content. Please try again.");
     }
 });
+
 
 // Load tweets in real-time
 const loadTweets = () => {
