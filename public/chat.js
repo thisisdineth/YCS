@@ -4,6 +4,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getDatabase, ref, set, get, push, onValue, remove, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 import { filterBadWords } from './badword.js';  // Import the bad words filtering function
 
+
 // Initialize Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBTonYWFHgcxcVi1BBVeZkx823CfuT7CgM",
@@ -281,30 +282,63 @@ function handleTyping() {
     }, 2000);
 }
 
-// Send a Message in the Chat Room
-function sendMessage() {
+// Send a Message in the Chat Room with AI Moderation
+async function sendMessage() {
     const chatInput = document.getElementById('chat-input').value;
     if (chatInput.trim() === '') return; // Ignore empty messages
 
-    const chatMessagesRef = ref(db, `chatRooms/${currentChatRoom}/messages`);
-    const newMessageRef = push(chatMessagesRef);
+    try {
+        // Call OpenAI API for moderation
+        const response = await fetch('https://api.openai.com/v1/moderations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer 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` // Replace with your OpenAI API key
+            },
+            body: JSON.stringify({
+                input: chatInput
+            })
+        });
 
-    set(newMessageRef, {
-        uid: currentUser.uid,
-        message: filterBadWords(formatMathExpression(chatInput)),
-        replyTo: replyMessageId ? { message: replyMessageId } : null,
-        timestamp: serverTimestamp()
-    }).then(() => {
+        if (!response.ok) {
+            throw new Error(`OpenAI API returned an error: ${response.statusText}`);
+        }
+
+        const moderationResponse = await response.json();
+
+        // Check if the message is flagged
+        const flagged = moderationResponse.results.some(result => result.flagged);
+
+        if (flagged) {
+            alert("Your message contains inappropriate content and cannot be sent.");
+            document.getElementById('chat-input').value = ''; // Clear input field
+            return;
+        }
+
+        // Proceed if the message passes moderation
+        const chatMessagesRef = ref(db, `chatRooms/${currentChatRoom}/messages`);
+        const newMessageRef = push(chatMessagesRef);
+
+        await set(newMessageRef, {
+            uid: currentUser.uid,
+            message: filterBadWords(formatMathExpression(chatInput)),
+            replyTo: replyMessageId ? { message: replyMessageId } : null,
+            timestamp: serverTimestamp()
+        });
+
         document.getElementById('chat-input').value = ''; // Clear input field
         document.getElementById('chat-input').placeholder = 'You: Type a message...';
         replyMessageId = null; // Clear reply ID
         handleTyping(); // Reset typing status
         const chatBox = document.getElementById('chat-box');
         chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the latest message
-    }).catch((error) => {
-        console.error("Error sending message:", error);
-    });
+
+    } catch (error) {
+        console.error("Error sending message or moderating content:", error);
+    }
 }
+
+
 
 // Leave the Current Chat Room
 async function leaveChatRoom() {
