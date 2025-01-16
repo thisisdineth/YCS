@@ -20,47 +20,50 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-let currentUser = null;
-let currentChatRoom = null;
-let typingRef = null;
-let replyMessageId = null;
-let inactivityTimeout = null;
-let chatLeaveTimeout = null;
+// Global Variables
+let currentUser = null;           // Stores the current authenticated user
+let currentChatRoom = null;       // Stores the active chat room ID
+let typingTimeout = null;         // Timer for clearing typing status
+let typingIndicatorTimeout = null; // Timer for hiding the "Stranger is typing..." message
+let replyMessageId = null;        // Stores the message ID for replying
+let inactivityTimeout = null;     // Timer for detecting user inactivity
+let chatLeaveTimeout = null;      // Timer for auto-leaving a chat room due to inactivity
 
 // Anonymous Sign In
 signInAnonymously(auth).catch((error) => {
     console.error("Error signing in anonymously:", error);
 });
 
-// Loading screen
+// Loading Screen Animation
 window.addEventListener('load', function() {
     setTimeout(function() {
-        document.body.classList.add('loaded');
+        document.body.classList.add('loaded'); // Adds a "loaded" class to start the app
     }, 1000); 
 });
 
-// Authentication state
+// Firebase Authentication State Listener
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
-        updateUserStatus('available');
-        setActiveUser();
-        updateActiveUsersCount();
+        updateUserStatus('available'); // Mark user as available
+        setActiveUser();              // Set the active user and manage disconnection
+        updateActiveUsersCount();     // Display the current count of active users
 
+        // Listen for changes to the user's current chat room
         const userChatRoomRef = ref(db, `users/${currentUser.uid}/currentChatRoom`);
         onValue(userChatRoomRef, (snapshot) => {
             if (snapshot.exists()) {
                 currentChatRoom = snapshot.val();
-                redirectToChatRoom();
-                listenForMessages();
-                listenForTyping();
-                resetInactivityTimer();
+                redirectToChatRoom();     // Display chat room interface
+                listenForMessages();      // Listen for incoming messages
+                listenForTyping();        // Listen for typing status updates
+                resetInactivityTimer();   // Reset inactivity timer
             }
         });
     }
 });
 
-// Track user status
+// Update User Status in the Database
 function updateUserStatus(status) {
     const userRef = ref(db, `activeUsers/${currentUser.uid}`);
     set(userRef, {
@@ -70,7 +73,7 @@ function updateUserStatus(status) {
     });
 }
 
-// Active users count
+// Update Active Users Count on the UI
 function updateActiveUsersCount() {
     const activeUsersRef = ref(db, 'activeUsers');
     onValue(activeUsersRef, (snapshot) => {
@@ -79,7 +82,7 @@ function updateActiveUsersCount() {
     });
 }
 
-// Set active user and manage disconnection
+// Set Active User and Manage Disconnection
 function setActiveUser() {
     const userRef = ref(db, `activeUsers/${currentUser.uid}`);
     set(userRef, {
@@ -88,40 +91,45 @@ function setActiveUser() {
         timestamp: serverTimestamp()
     });
 
+    // Remove user from active list on disconnection
     onDisconnect(userRef).remove().then(() => {
         console.log("User disconnected.");
         updateActiveUsersCount();
     });
 
+    // Track visibility changes (e.g., tab changes)
     document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
-// Handle inactivity
+// Handle Visibility Changes
 function handleVisibilityChange() {
     if (document.hidden) {
-        markUserInactive();
+        markUserInactive(); // Mark user as inactive when they leave the tab
     } else {
-        markUserActive();
+        markUserActive();   // Mark user as active when they return
     }
 }
 
+// Mark User as Inactive
 function markUserInactive() {
     updateUserStatus('available');
     clearTimeout(inactivityTimeout);
     clearTimeout(chatLeaveTimeout);
 }
 
+// Mark User as Active
 function markUserActive() {
     updateUserStatus('available');
     resetInactivityTimer();
 }
 
+// Reset Inactivity Timer
 function resetInactivityTimer() {
     clearTimeout(chatLeaveTimeout);
-    chatLeaveTimeout = setTimeout(leaveChatRoom, 120000);
+    chatLeaveTimeout = setTimeout(leaveChatRoom, 120000); // Auto-leave after 2 minutes of inactivity
 }
 
-// Start chat with random user
+// Start Chat with a Random User
 async function startChat() {
     try {
         const activeUsersRef = ref(db, 'activeUsers');
@@ -146,7 +154,7 @@ async function startChat() {
     }
 }
 
-// Connect to chat room or create one
+// Connect to a Chat Room or Create a New One
 async function connectToChatRoom(partnerUid) {
     if (partnerUid === currentUser.uid) {
         console.error("Cannot connect to a chat room with yourself.");
@@ -158,6 +166,8 @@ async function connectToChatRoom(partnerUid) {
     const partnerChatRoomRef = ref(db, `users/${partnerUid}/currentChatRoom`);
 
     let existingChatRoom = null;
+
+    // Check for an existing chat room
     const existingChatRoomsSnapshot = await get(chatRoomsRef);
     if (existingChatRoomsSnapshot.exists()) {
         existingChatRoomsSnapshot.forEach(roomSnapshot => {
@@ -169,10 +179,12 @@ async function connectToChatRoom(partnerUid) {
     }
 
     if (existingChatRoom) {
+        // Use existing chat room
         currentChatRoom = existingChatRoom;
         await set(userChatRoomRef, currentChatRoom);
         await set(partnerChatRoomRef, currentChatRoom);
     } else {
+        // Create a new chat room
         const newChatRoomRef = push(chatRoomsRef);
         currentChatRoom = newChatRoomRef.key;
         await set(newChatRoomRef, {
@@ -183,28 +195,28 @@ async function connectToChatRoom(partnerUid) {
         await set(partnerChatRoomRef, currentChatRoom);
     }
 
-    updateUserStatus('busy');
-    await set(ref(db, `activeUsers/${partnerUid}/status`), 'busy');
+    updateUserStatus('busy'); // Update user status
+    await set(ref(db, `activeUsers/${partnerUid}/status`), 'busy'); // Update partner's status
     console.log(`Connected to chat room with ID: ${currentChatRoom}`);
-    redirectToChatRoom();
-    listenForMessages();
-    listenForTyping();
-    resetInactivityTimer();
+    redirectToChatRoom();     // Redirect to the chat room UI
+    listenForMessages();      // Start listening for messages
+    listenForTyping();        // Start listening for typing status
+    resetInactivityTimer();   // Reset inactivity timer
 }
 
-// Chat room redirection
+// Redirect to Chat Room UI
 function redirectToChatRoom() {
     alert("Successfully connected to a user! You can now start chatting.");
     document.getElementById('chat-container').style.display = 'block';
 }
 
-// Message listening
+// Listen for Messages in the Chat Room
 function listenForMessages() {
     if (!currentChatRoom) return;
     const chatMessagesRef = ref(db, `chatRooms/${currentChatRoom}/messages`);
     onValue(chatMessagesRef, (snapshot) => {
         const chatBox = document.getElementById('chat-box');
-        chatBox.innerHTML = '';
+        chatBox.innerHTML = ''; // Clear existing messages
         snapshot.forEach(childSnapshot => {
             const messageData = childSnapshot.val();
             const messageElement = document.createElement('div');
@@ -225,37 +237,54 @@ function listenForMessages() {
 
             chatBox.appendChild(messageElement);
         });
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the latest message
     });
 }
 
-// Typing status
+// Listen for Typing Status Updates
 function listenForTyping() {
     if (!currentChatRoom) return;
-    typingRef = ref(db, `chatRooms/${currentChatRoom}/typing`);
+    const typingRef = ref(db, `chatRooms/${currentChatRoom}/typing`);
     onValue(typingRef, (snapshot) => {
         const typingData = snapshot.val();
-        document.getElementById('typing-indicator').textContent = typingData && typingData.uid !== currentUser.uid
-            ? "Stranger is typing..."
-            : "";
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        if (typingData && typingData.uid !== currentUser.uid) {
+            typingIndicator.textContent = "Stranger is typing...";
+            clearTimeout(typingIndicatorTimeout); // Clear any previous timeout
+            typingIndicatorTimeout = setTimeout(() => {
+                typingIndicator.textContent = ""; // Hide indicator after 3 seconds of no activity
+            }, 3000);
+        } else {
+            typingIndicator.textContent = ""; // Clear indicator if no typing data
+        }
     });
 }
 
-// ** New handleTyping function **
+// Handle Typing Status Updates
 function handleTyping() {
     if (!currentChatRoom) return;
-    const typingRef = ref(db, `chatRooms/${currentChatRoom}/typing/${currentUser.uid}`);
+
+    const typingRef = ref(db, `chatRooms/${currentChatRoom}/typing`);
+    // Update typing status in the database
     set(typingRef, {
         uid: currentUser.uid,
         timestamp: serverTimestamp()
     });
-    resetInactivityTimer();  // Reset timer on typing activity
+
+    // Clear typing status after 2 seconds of inactivity
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        remove(typingRef).catch((error) => {
+            console.error("Error clearing typing status:", error);
+        });
+    }, 2000);
 }
 
-// Send message
+// Send a Message in the Chat Room
 function sendMessage() {
     const chatInput = document.getElementById('chat-input').value;
-    if (chatInput.trim() === '') return;
+    if (chatInput.trim() === '') return; // Ignore empty messages
 
     const chatMessagesRef = ref(db, `chatRooms/${currentChatRoom}/messages`);
     const newMessageRef = push(chatMessagesRef);
@@ -266,18 +295,18 @@ function sendMessage() {
         replyTo: replyMessageId ? { message: replyMessageId } : null,
         timestamp: serverTimestamp()
     }).then(() => {
-        document.getElementById('chat-input').value = '';
+        document.getElementById('chat-input').value = ''; // Clear input field
         document.getElementById('chat-input').placeholder = 'You: Type a message...';
-        replyMessageId = null;
-        handleTyping();
+        replyMessageId = null; // Clear reply ID
+        handleTyping(); // Reset typing status
         const chatBox = document.getElementById('chat-box');
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the latest message
     }).catch((error) => {
         console.error("Error sending message:", error);
     });
 }
 
-// Leave chat room
+// Leave the Current Chat Room
 async function leaveChatRoom() {
     if (currentChatRoom) {
         const chatRoomRef = ref(db, `chatRooms/${currentChatRoom}`);
@@ -290,17 +319,17 @@ async function leaveChatRoom() {
         });
 
         setTimeout(async () => {
-            await remove(chatRoomRef);
-            currentChatRoom = null;
-            document.getElementById('chat-box').innerHTML = '';
+            await remove(chatRoomRef); // Delete chat room data
+            currentChatRoom = null;   // Reset chat room ID
+            document.getElementById('chat-box').innerHTML = ''; // Clear chat UI
             document.getElementById('chat-container').style.display = 'none';
             alert("You have left the chat.");
-            updateUserStatus('available');
+            updateUserStatus('available'); // Mark user as available
         }, 500);
     }
 }
 
-// Format math expressions
+// Format Math Expressions for Display
 function formatMathExpression(input) {
     input = input.replace(/\^(\d+)/g, (_, exp) => `<sup>${exp}</sup>`);
     input = input.replace(/\*/g, '×');
@@ -308,7 +337,7 @@ function formatMathExpression(input) {
     return input;
 }
 
-// Event Listeners
+// Event Listeners for UI Elements
 document.getElementById('new-chat-btn').addEventListener('click', startChat);
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('skip-btn').addEventListener('click', leaveChatRoom);
@@ -316,10 +345,11 @@ document.getElementById('chat-input').addEventListener('input', handleTyping);
 document.getElementById('chat-input').addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
         event.preventDefault();
-        sendMessage();
+        sendMessage(); // Send message on Enter key
     }
 });
 
+// Update Local Time on UI Every Second
 setInterval(() => {
     document.getElementById('local-time').textContent = new Date().toLocaleTimeString();
 }, 1000);
