@@ -312,7 +312,7 @@ async function sendMessage() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer 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` // Replace with your OpenAI API key
+                'Authorization': `Bearer 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` 
             },
             body: JSON.stringify({
                 input: chatInput
