@@ -282,12 +282,31 @@ function handleTyping() {
     }, 2000);
 }
 
-// Send a Message in the Chat Room with AI Moderation
+// Custom sensitive keywords for additional filtering
+const customSensitiveWords = [
+    "sext", "explicit", "rape", "suicide", "kill", "terror", "bomb", "attack", "war", 
+    "politics", "mental harm", "abuse", "harass"
+];
+
+// Function to check for custom sensitive words
+function containsSensitiveWords(input) {
+    const lowercaseInput = input.toLowerCase();
+    return customSensitiveWords.some(word => lowercaseInput.includes(word));
+}
+
+// Enhanced Send Message Function with Moderation and Custom Filtering
 async function sendMessage() {
     const chatInput = document.getElementById('chat-input').value;
     if (chatInput.trim() === '') return; // Ignore empty messages
 
     try {
+        // Custom filter check
+        if (containsSensitiveWords(chatInput)) {
+            alert("Your message contains sensitive or harmful content and cannot be sent.");
+            document.getElementById('chat-input').value = ''; // Clear input field
+            return;
+        }
+
         // Call OpenAI API for moderation
         const response = await fetch('https://api.openai.com/v1/moderations', {
             method: 'POST',
@@ -306,7 +325,7 @@ async function sendMessage() {
 
         const moderationResponse = await response.json();
 
-        // Check if the message is flagged
+        // Check if the message is flagged by OpenAI
         const flagged = moderationResponse.results.some(result => result.flagged);
 
         if (flagged) {
@@ -315,7 +334,7 @@ async function sendMessage() {
             return;
         }
 
-        // Proceed if the message passes moderation
+        // Proceed if the message passes all checks
         const chatMessagesRef = ref(db, `chatRooms/${currentChatRoom}/messages`);
         const newMessageRef = push(chatMessagesRef);
 
@@ -337,7 +356,6 @@ async function sendMessage() {
         console.error("Error sending message or moderating content:", error);
     }
 }
-
 
 
 // Leave the Current Chat Room
