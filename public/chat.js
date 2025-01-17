@@ -401,7 +401,7 @@ document.getElementById('chat-input').addEventListener('keydown', (event) => {
     }
 });
 
-// Update Local Time on UI Every Second
+
 setInterval(() => {
     document.getElementById('local-time').textContent = new Date().toLocaleTimeString();
 }, 1000);
