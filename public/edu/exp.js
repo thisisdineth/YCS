@@ -225,28 +225,78 @@ const setupChatListeners = (userId, userData) => {
             typingIndicator.style.display = 'none';
         }
     });
-
-    // Send text message
     sendMessageBtn.addEventListener('click', async () => {
         const content = messageInput.value.trim();
-        if (content === "") return;
-
-        const chatRef = ref(db, `chats/${getChatId(currentUserId, userId)}`);
-        const newMessage = {
-            content,
-            senderId: currentUserId,
-            timestamp: serverTimestamp(),
-            seen: false,
-            type: 'text' // Specify type
-        };
-
-        await push(chatRef, newMessage);
-        messageInput.value = ""; // Clear input
-        const sendSound = document.getElementById('send-sound');
-        sendSound.play();
-        updateTypingStatus(userId, false);
+        if (content === "") return; // Ignore empty messages
+    
+        try {
+            // Custom filter for sexual, mental harm, and war-related content
+            if (containsSensitiveContent(content)) {
+                alert("Your message contains inappropriate content (sexual, harmful, or war-related) and cannot be sent.");
+                messageInput.value = ''; // Clear input field
+                return;
+            }
+    
+            // Call OpenAI API for content moderation
+            const response = await fetch('https://api.openai.com/v1/moderations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer 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`, // Replace with your OpenAI API key
+                },
+                body: JSON.stringify({ input: content }),
+            });
+    
+            if (!response.ok) {
+                throw new Error(`OpenAI API returned an error: ${response.statusText}`);
+            }
+    
+            const moderationResponse = await response.json();
+    
+            // Check if the message is flagged by OpenAI
+            const flagged = moderationResponse.results.some(result => result.flagged);
+    
+            if (flagged) {
+                alert("Your message contains inappropriate content and cannot be sent.");
+                messageInput.value = ''; // Clear input field
+                return;
+            }
+    
+            // Proceed with sending the message if it passes all checks
+            const chatRef = ref(db, `chats/${getChatId(currentUserId, userId)}`);
+            const newMessage = {
+                content,
+                senderId: currentUserId,
+                timestamp: serverTimestamp(),
+                seen: false,
+                type: 'text' // Specify message type
+            };
+    
+            await push(chatRef, newMessage);
+            messageInput.value = ""; // Clear input field
+    
+            // Play send sound
+            const sendSound = document.getElementById('send-sound');
+            sendSound.play();
+    
+            // Update typing status
+            updateTypingStatus(userId, false);
+    
+        } catch (error) {
+            console.error("Error sending message or moderating content:", error);
+        }
     });
-
+    
+    // Function to check for sensitive content like sexual, mental harm, or war-related terms
+    function containsSensitiveContent(input) {
+        const sensitiveWords = [
+            'sex', 'rape', 'violence', 'abuse', 'war', 'kill', 'suicide', 'mental health', 'harassment', 'hate'
+            // Add more harmful terms as needed
+        ];
+        const regex = new RegExp(`\\b(${sensitiveWords.join('|')})\\b`, 'i');
+        return regex.test(input);
+    }
+    
     // Send voice message
     sendVoiceBtn.addEventListener('click', async () => {
         const audioBlob = await recordAudio();
