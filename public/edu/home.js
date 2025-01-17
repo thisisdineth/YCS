@@ -121,7 +121,7 @@ postTweetBtn.addEventListener('click', async () => {
         const flagged = moderationResponse.results.some(result => result.flagged);
 
         if (flagged) {
-            showError("Your tweet contains harmful or inappropriate content and cannot be posted.");
+            showError("Remove unsuitable things related to war , politicals or Sexual This is clean and safe app.");
             return;
         }
 
